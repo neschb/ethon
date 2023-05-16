@@ -22,7 +22,11 @@ module Ethon
         base.attach_function :easy_escape,                :curl_easy_escape,         [:pointer, :pointer, :int],     :pointer
         base.attach_function :easy_reset,                 :curl_easy_reset,          [:pointer],                     :void
         base.attach_function :easy_duphandle,             :curl_easy_duphandle,      [:pointer],                     :pointer
-
+        
+        base.attach_function :easy_getinfo_va,            :curl_easy_getinfo,        [:pointer, :info, :varargs],    :easy_code
+        base.attach_function :easy_setopt_va,             :curl_easy_setopt,         [:pointer, :easy_option, :varargs], :easy_code
+        base.attach_function :multi_setopt_va,            :curl_multi_setopt,        [:pointer, :multi_option, :varargs], :multi_code
+        
         base.attach_function :formadd,                    :curl_formadd,             [:pointer, :pointer, :varargs], :int
         base.attach_function :formfree,                   :curl_formfree,            [:pointer],                     :void
 
@@ -52,6 +56,36 @@ module Ethon
         end
 
         base.attach_function :select,                                            [:int, Curl::FDSet.ptr, Curl::FDSet.ptr, Curl::FDSet.ptr, Curl::Timeval.ptr], :int
+        
+        base.singleton_class.define_method :easy_getinfo do |handle, option, ptr|
+         easy_getinfo_va handle, option, :pointer, ptr
+        end
+
+        {
+          ffipointer: :pointer,
+          string: :string,
+          long: :long,
+          callback: :callback,
+          debug_callback: :debug_callback,
+          progress_callback: :progress_callback,
+          off_t: :int64,
+        }.each do |suffix, type|
+          base.singleton_class.define_method :"easy_setopt_#{suffix}" do |handle, option, value|
+            easy_setopt_va handle, option, type, value
+          end
+        end
+
+        {
+          ffipointer: :pointer,
+          string: :string,
+          long: :long,
+          callback: :callback,
+          off_t: :int64,
+        }.each do |suffix, type|
+          base.singleton_class.define_method :"multi_setopt_#{suffix}" do |handle, option, value|
+            multi_setopt_va handle, option, type, value
+          end
+        end
       end
     end
   end
